@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暴打老板 👊</title>
+<link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👊</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    overflow-x: hidden;
+  }
+  h1 { margin: 16px 0 4px; font-size: 2rem; text-shadow: 0 0 20px rgba(255,80,80,.6); }
+  .subtitle { color: #8aa; font-size: .85rem; margin-bottom: 12px; }
+
+  .topbar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .topbar button {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); color: #eee;
+    border-radius: 10px; padding: 6px 14px; cursor: pointer; font-size: .85rem; font-family: inherit;
+  }
+  .topbar button:hover { background: rgba(255,255,255,.16); }
+
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .stat {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 12px; padding: 8px 16px; font-size: .9rem; min-width: 105px; text-align: center;
+  }
+  .stat b { display: block; font-size: 1.2rem; color: #ffd700; }
+
+  .arena {
+    display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+    width: 100%; max-width: 940px; padding: 0 16px 24px;
+  }
+
+  .boss-zone { flex: 1; min-width: 300px; text-align: center; }
+  .boss-title { font-size: 1.1rem; margin-bottom: 6px; color: #ffb3b3; }
+  .boss-title.enraged { color: #ff4757; text-shadow: 0 0 12px #ff4757; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .6; } }
+  .timer { font-size: .95rem; color: #ff6b6b; font-weight: bold; min-height: 20px; margin-bottom: 4px; }
+  .timer.urgent { font-size: 1.15rem; color: #ff2e2e; animation: timerFlash .5s infinite; }
+  @keyframes timerFlash { 50% { opacity: .3; transform: scale(1.08); } }
+  body.urgent::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    box-shadow: inset 0 0 120px rgba(255,0,0,.45);
+    animation: vignette .5s infinite;
+  }
+  @keyframes vignette { 50% { box-shadow: inset 0 0 60px rgba(255,0,0,.2); } }
+  .hp-bar {
+    width: 90%; max-width: 340px; height: 22px; margin: 0 auto 14px;
+    background: rgba(0,0,0,.5); border-radius: 11px; overflow: hidden; border: 1px solid rgba(255,255,255,.2);
+    position: relative;
+  }
+  .hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #e63946, #ff6b6b);
+    transition: width .15s ease; border-radius: 11px;
+  }
+  .hp-fill.enraged { background: linear-gradient(90deg, #7b2ff7, #f107a3); }
+  .hp-text { font-size: .8rem; color: #ccc; margin-top: -10px; margin-bottom: 6px; }
+  .regen-hint { font-size: .72rem; color: #7fdb8a; min-height: 16px; margin-bottom: 4px; }
+
+  #boss {
+    font-size: 130px; cursor: pointer; display: inline-block; line-height: 1.3;
+    transition: transform .05s; position: relative; filter: drop-shadow(0 8px 16px rgba(0,0,0,.5));
+  }
+  #boss:active { transform: scale(.9); }
+  #boss.shake { animation: shake .18s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-10px) rotate(-6deg); }
+    75% { transform: translateX(10px) rotate(6deg); }
+  }
+  #boss.dead { animation: die .8s forwards; }
+  @keyframes die { to { transform: rotate(180deg) translateY(40px) scale(.6); opacity: .2; } }
+
+  .quote { min-height: 24px; color: #9fd; font-size: .95rem; font-style: italic; margin-top: 8px; }
+  .nav { margin-top: 12px; display: flex; gap: 10px; justify-content: center; }
+  .nav button {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.25); color: #cde;
+    border-radius: 10px; padding: 8px 14px; cursor: pointer; font-family: inherit; font-size: .85rem;
+  }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.16); }
+  .nav button:disabled { opacity: .3; cursor: not-allowed; }
+
+  .float-dmg {
+    position: fixed; font-weight: bold; pointer-events: none;
+    animation: floatUp 1s ease-out forwards; z-index: 10; font-size: 1.4rem; color: #ffd700;
+    text-shadow: 0 2px 4px rgba(0,0,0,.7);
+  }
+  .float-dmg.crit { color: #ff4757; font-size: 2rem; }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-90px) scale(1.3); }
+  }
+
+  .panel { flex: 1; min-width: 300px; max-width: 400px; }
+  .panel h2 { font-size: 1.1rem; margin-bottom: 10px; text-align: center; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .tabs button {
+    flex: 1; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15); color: #aac;
+    border-radius: 10px; padding: 8px; cursor: pointer; font-family: inherit; font-size: .9rem;
+  }
+  .tabs button.active { background: rgba(255,215,0,.15); color: #ffd700; border-color: #ffd700; }
+
+  .item {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.15);
+    border-radius: 14px; padding: 10px 14px; margin-bottom: 10px; cursor: pointer;
+    transition: background .15s, transform .1s; color: #eee; text-align: left; font-family: inherit;
+  }
+  .item:hover:not(:disabled) { background: rgba(255,255,255,.14); transform: translateY(-2px); }
+  .item:disabled { opacity: .45; cursor: not-allowed; }
+  .item .icon { font-size: 2rem; }
+  .item .info { flex: 1; }
+  .item .name { font-weight: bold; }
+  .item .desc { font-size: .78rem; color: #aac; }
+  .item .price { color: #ffd700; font-weight: bold; white-space: nowrap; }
+  .item .owned { font-size: .75rem; color: #8f8; }
+
+  .ach {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px; padding: 10px 14px; margin-bottom: 8px;
+  }
+  .ach.locked { opacity: .4; filter: grayscale(1); }
+  .ach .icon { font-size: 1.6rem; }
+  .ach .name { font-weight: bold; font-size: .9rem; }
+  .ach .desc { font-size: .75rem; color: #aac; }
+
+  .kill-banner {
+    position: fixed; top: 40%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 2rem; font-weight: bold; color: #ffd700; text-shadow: 0 0 30px #ff0;
+    pointer-events: none; opacity: 0; z-index: 100; text-align: center;
+  }
+  .kill-banner.show { animation: banner 1.6s ease forwards; }
+  @keyframes banner {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scale(1.15); }
+    80% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-70%) scale(1); }
+  }
+
+  .toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #2d2d44, #1f1f33); border: 1px solid #ffd700;
+    border-radius: 14px; padding: 12px 20px; z-index: 200; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 30px rgba(255,215,0,.3); animation: toastIn 3s ease forwards;
+  }
+  @keyframes toastIn {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+    10%, 85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+  }
+  .toast .t-icon { font-size: 1.8rem; }
+  .toast .t-name { font-weight: bold; color: #ffd700; }
+  .toast .t-desc { font-size: .78rem; color: #aac; }
+
+  .reset { margin: 6px 0 24px; background: none; border: 1px solid #555; color: #888;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: .75rem; }
+  .reset:hover { color: #f66; border-color: #f66; }
+</style>
+</head>
+<body>
+
+<h1>👊 暴打老板</h1>
+<div class="subtitle">上班的气，现在撒！疯狂点击老板！</div>
+
+<div class="topbar">
+  <button id="muteBtn" onclick="toggleMute()">🔊 音效开</button>
+</div>
+
+<div class="stats">
+  <div class="stat">💰 金币<b id="coins">0</b></div>
+  <div class="stat">👊 点击伤害<b id="clickDmg">1</b></div>
+  <div class="stat">⚙️ 每秒伤害<b id="dps">0</b></div>
+  <div class="stat">🎯 暴击率<b id="critRate">10%</b></div>
+  <div class="stat">🏆 已击败<b id="kills">0</b></div>
+</div>
+
+<div class="arena">
+  <div class="boss-zone">
+    <div class="boss-title" id="bossName">第 1 关 · 组长</div>
+    <div class="timer" id="timer"></div>
+    <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
+    <div class="hp-text" id="hpText"></div>
+    <div class="regen-hint" id="regenHint"></div>
+    <div id="boss">😡</div>
+    <div class="quote" id="quote">"这季度KPI你完成了吗？"</div>
+    <div class="nav">
+      <button id="prevBtn" onclick="goLevel(-1)">⬅️ 回上一关刷钱</button>
+      <button id="nextBtn" onclick="goLevel(1)">挑战下一关 ➡️</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <button id="tabShop" class="active" onclick="switchTab('shop')">🛒 军火库</button>
+      <button id="tabAch" onclick="switchTab('ach')">🏅 成就 <span id="achCount"></span></button>
+    </div>
+    <div id="shopItems"></div>
+    <div id="achList" style="display:none"></div>
+  </div>
+</div>
+
+<button class="reset" onclick="resetGame()">🗑️ 重置存档</button>
+<div class="kill-banner" id="killBanner"></div>
+
+<script>
+// ========== 配置 ==========
+const BOSS_LEVELS = [
+  { name:'组长',       face:'😠' },
+  { name:'主管',       face:'😡' },
+  { name:'部门经理',   face:'🤬' },
+  { name:'高级经理',   face:'😤' },
+  { name:'总监',       face:'🧐' },
+  { name:'VP',         face:'😏' },
+  { name:'CTO',        face:'🤓' },
+  { name:'CEO',        face:'😈' },
+  { name:'董事长',     face:'🧛' },
+  { name:'神秘大股东', face:'👺' },
+  { name:'集团总裁',   face:'🦹' },
+  { name:'资本大鳄',   face:'🐊' },
+  { name:'风投教父',   face:'🤑' },
+  { name:'垄断巨头',   face:'👹' },
+  { name:'世界首富',   face:'🤴' },
+  { name:'幕后黑手',   face:'🕴️' },
+  { name:'资本之神',   face:'😇' },
+  { name:'AI霸主',     face:'👾' },
+  { name:'宇宙财阀',   face:'👽' },
+  { name:'资本本体',   face:'🌚' }
+];
+// 打穿20关后进入"N周目"轮回，老板越轮回越强
+function tierOf(lv){
+  const n = BOSS_LEVELS.length;
+  const cycle = Math.floor(lv / n), idx = lv % n;
+  const t = BOSS_LEVELS[idx];
+  return { face: t.face, name: (cycle > 0 ? `${cycle+1}周目·` : '') + t.name };
+}
+const HIT_QUOTES = [
+  '😵 "哎哟！有话好好说！"','🙏 "我错了我错了！"','💸 "年终奖！我给你年终奖！"',
+  '🏖️ "住手！这周不加班了！"','📈 "我马上给你调薪！"','🤕 "别打脸！我下午还要开会！"',
+  '🆘 "救命！叫HR来！"','🧋 "我请你喝奶茶还不行吗！"','📝 "周报不用写了！"','✅ "你的需求我马上批！"',
+  '😱 "保安！保安呢？！"','🚗 "我的特斯拉借你开！"','🛋️ "工位给你换靠窗的！"',
+  '💺 "我的老板椅让给你坐！"','🍗 "下午茶我承包了！"','📅 "调休！随便调！"',
+  '🤯 "你到底健身多久了？！"','💳 "公司饭卡给你充一万！"','🏠 "居家办公！永久的！"',
+  '🎫 "带薪年假给你翻倍！"','😭 "我妈知道会伤心的！"','📉 "再打股价要跌了！"',
+  '🐟 "以后上班随便摸鱼！"','⏰ "打卡机我砸了还不行吗！"','🎮 "会议室改成电竞房！"'
+];
+const IDLE_QUOTES = [
+  '📊 "这季度KPI你完成了吗？"','🌙 "今晚留下来加个班吧。"','🤷 "这是你的问题，不是我的问题。"',
+  '💪 "年轻人要多奋斗。"','🎯 "我不管过程，我只要结果。"','☀️ "明天早上九点开会。"',
+  '🧠 "我们要有狼性思维。"','🍵 "你这个想法要沉淀一下。"','🔗 "来，我们对齐一下颗粒度。"',
+  '🏗️ "先把底层逻辑打通，形成闭环。"','🚀 "这个需求很简单，明天上线。"','💰 "公司现在困难，共克时艰。"',
+  '👨‍👩‍👧 "公司就是你的家。"','🐺 "你要有主人翁精神。"','📵 "下班了也要秒回消息。"',
+  '🎂 "生日？生日也要开周会。"','🌅 "早起的鸟儿有虫吃。"','🪜 "吃苦是最好的晋升阶梯。"',
+  '🤝 "我把你当兄弟，你跟我谈钱？"','⛰️ "你的工资是我给你的机会。"','📚 "周末来公司学习是福报。"'
+];
+const ENRAGE_QUOTES = [
+  '💢 "我要让你见识资本的力量！"','😤 "你的绩效我做主！"','🗓️ "这个月全员大小周！"',
+  '👔 "董事会都得听我的！"','⚡ "我一个电话你就进裁员名单！"','🔥 "今天不是你死就是我活！"'
+];
+
+const SHOP = [
+  { id:'mouse',    icon:'🖱️', name:'电竞鼠标',   desc:'点击伤害 +1',                 base:15,    type:'click', val:1   },
+  { id:'keyboard', icon:'⌨️', name:'机械键盘',   desc:'点击伤害 +5，敲击带风声',       base:100,   type:'click', val:5   },
+  { id:'gloves',   icon:'🥊', name:'拳击手套',   desc:'点击伤害 +20，专业的',          base:600,   type:'click', val:20  },
+  { id:'resign',   icon:'📄', name:'辞职信',     desc:'点击伤害 +100，无敌是多么寂寞',  base:5000,  type:'click', val:100 },
+  { id:'cup',      icon:'🍵', name:'枸杞保温杯', desc:'养生反击：暴击率 +2%（上限50%）', base:300,   type:'crit',  val:2   },
+  { id:'coffee',   icon:'☕', name:'冰美式',     desc:'咖啡因上头：每秒自动攻击 +2',    base:50,    type:'auto',  val:2   },
+  { id:'intern',   icon:'👨‍💻', name:'实习生',    desc:'帮你打：每秒自动攻击 +6',       base:250,   type:'auto',  val:6   },
+  { id:'robot',    icon:'🤖', name:'AI机器人',   desc:'全自动铁拳：每秒自动攻击 +25',   base:1200,  type:'auto',  val:25  },
+  { id:'colleague',icon:'👩‍💼', name:'摸鱼同事',  desc:'摸鱼顺便打：每秒自动攻击 +80',   base:6000,  type:'auto',  val:80  },
+  { id:'server',   icon:'🖥️', name:'服务器集群', desc:'算力碾压：每秒自动攻击 +300',    base:30000, type:'auto',  val:300 }
+];
+
+const ACHIEVEMENTS = [
+  { id:'firstClick', icon:'👆', name:'初出茅庐',   desc:'第一次出手',            check:s=>s.stats.clicks>=1 },
+  { id:'click500',   icon:'💪', name:'手指健身',   desc:'累计点击 500 次',        check:s=>s.stats.clicks>=500 },
+  { id:'click5000',  icon:'🚑', name:'腱鞘炎警告', desc:'累计点击 5000 次',       check:s=>s.stats.clicks>=5000 },
+  { id:'kill1',      icon:'🩸', name:'第一滴血',   desc:'击败第 1 个老板',        check:s=>s.kills>=1 },
+  { id:'kill10',     icon:'⚔️', name:'屠龙勇士',   desc:'击败 10 个老板',         check:s=>s.kills>=10 },
+  { id:'kill25',     icon:'👑', name:'大魔王猎人', desc:'击败 25 个老板',         check:s=>s.kills>=25 },
+  { id:'crit100',    icon:'🎰', name:'欧皇附体',   desc:'累计暴击 100 次',        check:s=>s.stats.crits>=100 },
+  { id:'coin10k',    icon:'🪙', name:'小富即安',   desc:'累计获得 1 万金币',      check:s=>s.stats.coinsEarned>=1e4 },
+  { id:'coin1m',     icon:'💎', name:'财富自由',   desc:'累计获得 100 万金币',    check:s=>s.stats.coinsEarned>=1e6 },
+  { id:'buy10',      icon:'🛍️', name:'剁手党',     desc:'购买 10 件装备',         check:s=>s.stats.itemsBought>=10 },
+  { id:'robot1',     icon:'🤖', name:'赛博打工',   desc:'拥有第 1 个AI机器人',    check:s=>s.owned.robot>=1 },
+  { id:'ceo',        icon:'🏢', name:'资本终结者', desc:'击败 CEO（第 8 关）',    check:s=>s.level>=8 },
+  { id:'enrage1',    icon:'🔥', name:'极限操作',   desc:'通过一个狂暴关卡',       check:s=>s.stats.enrageKills>=1 },
+  { id:'enrage5',    icon:'🌋', name:'反资本铁拳', desc:'通过 5 个狂暴关卡',      check:s=>s.stats.enrageKills>=5 }
+];
+
+const ENRAGE_EVERY = 5;      // 每5关一个狂暴关
+const ENRAGE_TIME = 45;      // 狂暴关限时（秒）
+const ENRAGE_HP_MULT = 2.5;
+const REGEN_START_LEVEL = 2; // 第3关起老板会回血
+
+// ========== 状态 ==========
+let S = defaultState();
+function defaultState(){
+  const s = { coins:0, kills:0, level:0, maxLevel:0, hp:0, maxHp:0, owned:{}, muted:false,
+    stats:{ clicks:0, crits:0, coinsEarned:0, itemsBought:0, enrageKills:0 }, ach:[] };
+  SHOP.forEach(i => s.owned[i.id] = 0);
+  return s;
+}
+
+let dead = false, enrageLeft = 0, urgentTick = 0, lastAttackAt = 0;
+
+function isEnraged(){ return (S.level+1) % ENRAGE_EVERY === 0; }
+function maxHpFor(lv){
+  let hp = Math.floor(50 * Math.pow(1.55, lv));
+  if ((lv+1) % ENRAGE_EVERY === 0) hp = Math.floor(hp * ENRAGE_HP_MULT);
+  return hp;
+}
+function regenPerSec(){
+  if (S.level < REGEN_START_LEVEL) return 0;
+  // 只有2秒内没挨打，老板才会喘息回血；持续攻击可完全压制
+  if (Date.now() - lastAttackAt < 2000) return 0;
+  return Math.ceil(S.maxHp * (isEnraged() ? 0.02 : 0.01));
+}
+function priceOf(item){ return Math.floor(item.base * Math.pow(1.18, S.owned[item.id])); }
+function clickDmg(){ return 1 + SHOP.filter(i=>i.type==='click').reduce((s,i)=>s + i.val*S.owned[i.id], 0); }
+function dps(){ return SHOP.filter(i=>i.type==='auto').reduce((s,i)=>s + i.val*S.owned[i.id], 0); }
+function critChance(){ return Math.min(0.5, 0.1 + 0.02 * (S.owned.cup||0)); }
+
+// ========== 音效（Web Audio 合成，无需素材） ==========
+let AC = null;
+function ac(){ if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } return AC; }
+function beep(freq, dur, type='square', vol=0.15, when=0){
+  if (S.muted) return;
+  const ctx = ac(); if (!ctx) return;
+  const t = ctx.currentTime + when;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + dur);
+}
+const SFX = {
+  hit()  { beep(150 + Math.random()*100, .08, 'square', .12); },
+  crit() { beep(500, .1, 'sawtooth', .18); beep(750, .12, 'sawtooth', .15, .05); },
+  buy()  { beep(880, .08, 'sine', .15); beep(1320, .12, 'sine', .15, .08); },
+  kill() { [660,550,440,330].forEach((f,i)=>beep(f, .15, 'triangle', .18, i*.1)); },
+  ach()  { [523,659,784,1047].forEach((f,i)=>beep(f, .18, 'sine', .16, i*.09)); },
+  enrage(){ beep(110, .5, 'sawtooth', .2); beep(98, .5, 'sawtooth', .2, .25); },
+  fail() { beep(220, .3, 'sawtooth', .18); beep(147, .5, 'sawtooth', .18, .2); },
+  // 紧张倒计时：心跳低音 + 越来越高的滴答声
+  urgent(secLeft){
+    beep(70, .12, 'sine', .35);                            // 心跳"咚"
+    beep(75, .1, 'sine', .25, .12);                        // 心跳"哒"
+    beep(700 + (10-secLeft)*90, .06, 'square', .1, .05);   // 滴答，音调随时间升高
+    if (secLeft <= 3) beep(1400, .08, 'sawtooth', .12, .15); // 最后3秒警报
+  }
+};
+function toggleMute(){
+  S.muted = !S.muted;
+  document.getElementById('muteBtn').textContent = S.muted ? '🔇 音效关' : '🔊 音效开';
+  save();
+}
+
+// ========== 存档 ==========
+function save(){ try { localStorage.setItem('beatBossSave', JSON.stringify(S)); } catch(e){} }
+function load(){
+  try {
+    const d = JSON.parse(localStorage.getItem('beatBossSave'));
+    if (d && typeof d.coins === 'number') {
+      const base = defaultState();
+      S = Object.assign(base, d);
+      S.stats = Object.assign(base.stats, d.stats||{});
+      S.owned = Object.assign(base.owned, d.owned||{});
+      S.ach = d.ach || [];
+      S.maxLevel = Math.max(S.maxLevel || 0, S.level); // 兼容旧存档
+      return true;
+    }
+  } catch(e){}
+  return false;
+}
+function resetGame(){
+  if (!confirm('确定要重置所有进度吗？老板会记住你的仁慈…')) return;
+  try { localStorage.removeItem('beatBossSave'); } catch(e){}
+  location.reload();
+}
+
+// ========== DOM ==========
+const $ = id => document.getElementById(id);
+const bossEl = $('boss'), quoteEl = $('quote');
+
+function bossFace(){
+  if (S.hp <= 0) return '💀';
+  const p = S.hp / S.maxHp;
+  if (p > 0.6) return isEnraged() ? '👿' : tierOf(S.level).face;
+  if (p > 0.3) return '😨';
+  return '😭';
+}
+
+function spawnBoss(){
+  S.maxHp = maxHpFor(S.level);
+  S.hp = S.maxHp;
+  dead = false;
+  bossEl.classList.remove('dead');
+  const enr = isEnraged();
+  enrageLeft = enr ? ENRAGE_TIME : 0;
+  const tier = tierOf(S.level);
+  const nameEl = $('bossName');
+  nameEl.textContent = (enr ? '🔥 狂暴 · ' : '') + `第 ${S.level+1} 关 · ${tier.name}`;
+  nameEl.classList.toggle('enraged', enr);
+  $('hpFill').classList.toggle('enraged', enr);
+  quoteEl.textContent = enr
+    ? ENRAGE_QUOTES[Math.floor(Math.random()*ENRAGE_QUOTES.length)]
+    : IDLE_QUOTES[Math.floor(Math.random()*IDLE_QUOTES.length)];
+  if (enr) SFX.enrage();
+  render();
+}
+
+function fmt(n){
+  if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e4) return (n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toString();
+}
+
+function render(){
+  $('coins').textContent = fmt(S.coins);
+  $('clickDmg').textContent = fmt(clickDmg());
+  $('dps').textContent = fmt(dps());
+  $('critRate').textContent = Math.round(critChance()*100)+'%';
+  $('kills').textContent = S.kills;
+  $('hpFill').style.width = Math.max(0, S.hp/S.maxHp*100) + '%';
+  $('hpText').textContent = `${fmt(Math.max(0,S.hp))} / ${fmt(S.maxHp)}`;
+  const rg = regenPerSec();
+  $('regenHint').textContent = rg > 0 && S.hp < S.maxHp ? `💊 老板正在喘息回血：+${fmt(rg)}/秒（快攻击打断他！）` : '';
+  const timerEl = $('timer');
+  timerEl.textContent = enrageLeft > 0 ? `⏰ 限时 ${Math.ceil(enrageLeft)} 秒！超时老板满血复活！` : '';
+  const urgent = enrageLeft > 0 && enrageLeft <= 10 && !dead;
+  timerEl.classList.toggle('urgent', urgent);
+  document.body.classList.toggle('urgent', urgent);
+  bossEl.textContent = bossFace();
+  $('achCount').textContent = `${S.ach.length}/${ACHIEVEMENTS.length}`;
+  $('prevBtn').disabled = S.level <= 0;
+  $('nextBtn').disabled = S.level >= S.maxLevel;
+  updateFavicon(bossFace());
+  renderShop();
+}
+
+// favicon 跟随老板当前表情
+let lastFavicon = '';
+function updateFavicon(emoji){
+  if (emoji === lastFavicon) return;
+  lastFavicon = emoji;
+  $('favicon').href = "data:image/svg+xml," + encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${emoji}</text></svg>`);
+}
+
+function renderShop(){
+  const box = $('shopItems');
+  if (!box.children.length){
+    SHOP.forEach(item=>{
+      const btn = document.createElement('button');
+      btn.className = 'item'; btn.id = 'shop-'+item.id;
+      btn.onclick = ()=>buy(item);
+      box.appendChild(btn);
+    });
+  }
+  SHOP.forEach(item=>{
+    const btn = $('shop-'+item.id);
+    const price = priceOf(item);
+    const capped = item.type==='crit' && critChance() >= 0.5;
+    btn.disabled = S.coins < price || capped;
+    btn.innerHTML = `
+      <span class="icon">${item.icon}</span>
+      <span class="info">
+        <span class="name">${item.name}</span> <span class="owned">×${S.owned[item.id]}</span><br>
+        <span class="desc">${capped ? '暴击率已满' : item.desc}</span>
+      </span>
+      <span class="price">💰${fmt(price)}</span>`;
+  });
+}
+
+function renderAch(){
+  const box = $('achList');
+  box.innerHTML = '';
+  ACHIEVEMENTS.forEach(a=>{
+    const got = S.ach.includes(a.id);
+    const div = document.createElement('div');
+    div.className = 'ach' + (got ? '' : ' locked');
+    div.innerHTML = `<span class="icon">${got ? a.icon : '🔒'}</span>
+      <span><div class="name">${a.name}</div><div class="desc">${a.desc}</div></span>`;
+    box.appendChild(div);
+  });
+}
+
+function switchTab(tab){
+  $('tabShop').classList.toggle('active', tab==='shop');
+  $('tabAch').classList.toggle('active', tab==='ach');
+  $('shopItems').style.display = tab==='shop' ? '' : 'none';
+  $('achList').style.display = tab==='ach' ? '' : 'none';
+  if (tab==='ach') renderAch();
+}
+
+// ========== 成就 ==========
+function checkAch(){
+  ACHIEVEMENTS.forEach(a=>{
+    if (!S.ach.includes(a.id) && a.check(S)){
+      S.ach.push(a.id);
+      SFX.ach();
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<span class="t-icon">${a.icon}</span>
+        <span><div class="t-name">🏅 成就解锁：${a.name}</div><div class="t-desc">${a.desc}</div></span>`;
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), 3000);
+      save();
+    }
+  });
+}
+
+// ========== 商店 ==========
+function buy(item){
+  const price = priceOf(item);
+  if (S.coins < price) return;
+  S.coins -= price;
+  S.owned[item.id]++;
+  S.stats.itemsBought++;
+  SFX.buy();
+  checkAch();
+  render(); save();
+}
+
+// ========== 战斗 ==========
+function hit(dmg, isClick, x, y){
+  if (dead) return;
+  lastAttackAt = Date.now();
+  let crit = false;
+  if (isClick){
+    S.stats.clicks++;
+    crit = Math.random() < critChance();
+    if (crit){ dmg *= 2; S.stats.crits++; }
+  }
+  S.hp -= dmg;
+  S.coins += dmg;
+  S.stats.coinsEarned += dmg;
+  if (isClick){
+    crit ? SFX.crit() : SFX.hit();
+    bossEl.classList.remove('shake'); void bossEl.offsetWidth; bossEl.classList.add('shake');
+    floatDmg(dmg, crit, x, y);
+    if (Math.random() < 0.25) quoteEl.textContent = HIT_QUOTES[Math.floor(Math.random()*HIT_QUOTES.length)];
+  }
+  if (S.hp <= 0) kill();
+  checkAch();
+  render();
+}
+
+function kill(){
+  dead = true;
+  S.kills++;
+  const enr = isEnraged();
+  if (enr) S.stats.enrageKills++;
+  const bonus = Math.floor(S.maxHp * (enr ? 1.5 : 0.5));
+  S.coins += bonus;
+  S.stats.coinsEarned += bonus;
+  bossEl.textContent = '💀';
+  bossEl.classList.add('dead');
+  quoteEl.textContent = '👻 "我…我还会回来的…"';
+  SFX.kill();
+  const banner = $('killBanner');
+  banner.textContent = (enr ? '🔥 狂暴关通过！' : '🎉 ') +
+    `击败${tierOf(S.level).name}！奖励 💰${fmt(bonus)}`;
+  banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+  S.level++;
+  S.maxLevel = Math.max(S.maxLevel, S.level);
+  checkAch();
+  save();
+  setTimeout(spawnBoss, 1200);
+}
+
+function floatDmg(dmg, crit, x, y){
+  const el = document.createElement('div');
+  el.className = 'float-dmg' + (crit ? ' crit' : '');
+  el.textContent = (crit ? '暴击 ' : '-') + fmt(dmg) + (crit ? '❗' : '');
+  const r = bossEl.getBoundingClientRect();
+  el.style.left = (x ?? r.left + r.width*Math.random()) + 'px';
+  el.style.top  = (y ?? r.top + 20) + 'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1000);
+}
+
+// 关卡切换：卡关时回上一关刷钱，攒够装备再回来
+function goLevel(delta){
+  const target = S.level + delta;
+  if (target < 0 || target > S.maxLevel || dead) return;
+  S.level = target;
+  spawnBoss();
+  save();
+}
+
+bossEl.addEventListener('pointerdown', e => { ac(); hit(clickDmg(), true, e.clientX - 20, e.clientY - 30); });
+
+// 主循环：每 250ms（自动攻击 / 老板回血 / 狂暴倒计时）
+setInterval(()=>{
+  if (dead) return;
+  const d = dps();
+  if (d > 0) hit(d/4, false);
+  const rg = regenPerSec();
+  if (rg > 0 && S.hp > 0 && S.hp < S.maxHp){
+    S.hp = Math.min(S.maxHp, S.hp + rg/4);
+  }
+  if (enrageLeft > 0){
+    enrageLeft -= 0.25;
+    // 最后10秒：紧张心跳音乐（越到最后节奏越快）
+    if (enrageLeft > 0 && enrageLeft <= 10){
+      urgentTick++;
+      const interval = enrageLeft <= 3 ? 1 : 2; // ≤3秒时每0.25s一拍，否则每0.5s
+      if (urgentTick % interval === 0) SFX.urgent(enrageLeft);
+    }
+    if (enrageLeft <= 0 && S.hp > 0){
+      // 超时：老板满血复活
+      S.hp = S.maxHp;
+      enrageLeft = ENRAGE_TIME;
+      quoteEl.textContent = '😈 "就这？我血条又满了！哈哈哈！"';
+      SFX.fail();
+    }
+  }
+  render();
+}, 250);
+
+setInterval(save, 5000);
+
+// ========== 启动 ==========
+if (load()){
+  document.getElementById('muteBtn').textContent = S.muted ? '🔇 音效关' : '🔊 音效开';
+  if (S.maxHp > 0 && S.hp > 0){
+    const enr = isEnraged();
+    enrageLeft = enr ? ENRAGE_TIME : 0;
+    const nameEl = $('bossName');
+    nameEl.textContent = (enr ? '🔥 狂暴 · ' : '') + `第 ${S.level+1} 关 · ${tierOf(S.level).name}`;
+    nameEl.classList.toggle('enraged', enr);
+    $('hpFill').classList.toggle('enraged', enr);
+    render();
+  } else spawnBoss();
+} else spawnBoss();
+</script>
+</body>
+</html>
