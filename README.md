@@ -4,7 +4,7 @@
 
 ## 在线游玩
 
-部署完成后，请在此补充 Cloudflare Pages 链接。
+[在线游玩：beat-the-boss-game.pages.dev](https://beat-the-boss-game.pages.dev/)
 
 ## 本地运行
 
