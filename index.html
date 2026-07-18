@@ -7,7 +7,7 @@
 <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👊</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-  html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+  html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -603,6 +603,17 @@ bossEl.addEventListener('pointerdown', e => { ac(); hit(clickDmg(), true, e.clie
 // Boss 区域是高频点击区：阻止移动端把双击识别为页面缩放手势。
 bossEl.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 bossEl.addEventListener('dblclick', e => e.preventDefault());
+
+// iOS Safari 对部分按钮（如“军火库”）仍可能把快速双击识别为页面缩放。
+// 只拦截连续两次触摸的第二次默认行为，保留普通单击按钮的点击反馈。
+let lastTouchEndAt = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouchEndAt < 350) e.preventDefault();
+  lastTouchEndAt = now;
+}, { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
 
 // 主循环：每 250ms（自动攻击 / 老板回血 / 狂暴倒计时）
 setInterval(()=>{
