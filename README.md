@@ -1,6 +1,10 @@
 # 暴打老板 · Beat the Boss
 
+![暴打老板 · Beat the Boss](docs/screenshot.jpg)
+
 一款中文点击放置小游戏。疯狂点击老板、积累金币、升级装备，在不断变强的 Boss 关卡里把“上班的气”一次性撒完。
+
+> 这是初代版本。续作 [暴打老板：打工人觉醒](https://github.com/chengwq95/beat-the-boss-awakening) 加入了怒气技能、弱点攻击、应急道具与辞职周目。
 
 ## 在线访问
 
@@ -42,3 +46,7 @@
 ## 声明
 
 本游戏纯属娱乐。现实中的职场问题建议通过合法、理性的方式解决。
+
+## 许可
+
+[MIT](LICENSE)
