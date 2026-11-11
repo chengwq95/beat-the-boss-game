@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>暴打老板 👊</title>
+<meta name="description" content="暴打老板：一款零依赖、可离线游玩的中文点击放置小游戏。点击老板、升级装备，把上班的气一次撒完。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="暴打老板 👊">
+<meta property="og:description" content="暴打老板：一款零依赖、可离线游玩的中文点击放置小游戏。点击老板、升级装备，把上班的气一次撒完。">
+<meta property="og:url" content="https://beat-the-boss-game.pages.dev/">
+<meta property="og:image" content="https://beat-the-boss-game.pages.dev/docs/screenshot.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👊</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
@@ -163,6 +170,8 @@
   .reset { margin: 6px 0 24px; background: none; border: 1px solid #555; color: #888;
     padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: .75rem; }
   .reset:hover { color: #f66; border-color: #f66; }
+button:focus-visible,#boss:focus-visible{outline:3px solid #ffd166;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -189,7 +198,7 @@
     <div class="hp-bar"><div class="hp-fill" id="hpFill"></div></div>
     <div class="hp-text" id="hpText"></div>
     <div class="regen-hint" id="regenHint"></div>
-    <div id="boss">😡</div>
+    <div id="boss" role="button" tabindex="0" aria-label="攻击老板">😡</div>
     <div class="quote" id="quote">"这季度KPI你完成了吗？"</div>
     <div class="nav">
       <button id="prevBtn" onclick="goLevel(-1)">⬅️ 回上一关刷钱</button>
@@ -602,6 +611,12 @@ function goLevel(delta){
 bossEl.addEventListener('pointerdown', e => { ac(); hit(clickDmg(), true, e.clientX - 20, e.clientY - 30); });
 // Boss 区域是高频点击区：阻止移动端把双击识别为页面缩放手势。
 bossEl.addEventListener('touchend', e => e.preventDefault(), { passive: false });
+bossEl.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault(); if (e.repeat) return;
+  const r = bossEl.getBoundingClientRect();
+  ac(); hit(clickDmg(), true, r.left + r.width / 2 - 20, r.top + r.height / 2 - 30);
+});
 bossEl.addEventListener('dblclick', e => e.preventDefault());
 
 // iOS Safari 对部分按钮（如“军火库”）仍可能把快速双击识别为页面缩放。
